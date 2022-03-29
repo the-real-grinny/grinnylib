@@ -9,3 +9,6 @@ Easy way to find users that are still Enabled inside an Active Directory but hav
 
 ## Find-AllUsersInSameGroup.ps1
 Compares a user inside a group with all the users in that group, and finds out if any users have other, additional groups in common with the targeted user.
+
+## Get-MFAUsers.ps1
+Grabs users from an MSOnline connection and finds out how (or if) their MFA is configured, and then dumps the info into a CSV.
