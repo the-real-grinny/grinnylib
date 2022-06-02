@@ -1,3 +1,22 @@
+# checks the current commit hash in a git repo
+# against an older hash from a previous run of the script
+# if the hash isn't the same, the repo will be hard reset to origin/HEAD
+# and then cleaned.
+# also handles individual, untracked and uncommitted changes.
+# basically if you want anything in the repo directory to survive,
+# then make sure it's tracked in git.
+# includes a small log outputter with date-time and basic log output
+
+# really this is intended to run as a Task Scheduler script on a given directory
+# but you can run it manually whenever
+
+# (C) the-real-grinny 2022
+<#
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at http://mozilla.org/MPL/2.0/.
+#>
+
 try {
 
     $hashes = &git log --pretty=format:"%H" -2
