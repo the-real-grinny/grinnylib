@@ -17,23 +17,11 @@
   file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #>
 
-try {
+param(
+    [Parameter(ValueFromPipeline=$true)]
+    [System.Array] $targets
+)
 
-    $hash = &git log --pretty=format:"%H" -1
-
-    $current = $hash
-
-    if ((Get-Item .\hash.txt).exists -eq $true) {
-
-        $previous = Get-Content -Path .\hash.txt
-
-    }
-
-} catch {
-
-    Write-Error "THIS IS NOT A GIT REPO. SCRIPT IS FAILING."
-    Exit "0x2 Git repo could not be found."
-}
 
 function Update-LogFile {
     param (
@@ -42,6 +30,7 @@ function Update-LogFile {
 
     Out-File -FilePath .\log.txt -InputObject $logtext -Append
 }
+
 
 function Remove-FileChanges {
     param (
@@ -55,6 +44,7 @@ function Remove-FileChanges {
     &git checkout . # essentially reverts the repo back to the most recent commit's status, removing uncommitted changes
 
 }
+
 
 function Restore-Repo {
     # this function is only useful if changes have been _committed_ to the repo independently, and haven't come from prod.
@@ -117,6 +107,7 @@ function Restore-Repo {
 
 }
 
+
 function Main {
 
     param (
@@ -137,4 +128,33 @@ function Main {
 
 }
 
-Main
+if ($targets.length -gt 1) {
+    foreach($target in $targets) {
+
+        cd "$target"
+ 
+        try {
+
+            $hash = &git log --pretty=format:"%H" -1
+
+            $current = $hash
+
+            if ((Get-Item .\hash.txt).exists -eq $true) {
+
+                $previous = Get-Content -Path .\hash.txt
+
+            }
+
+        } catch {
+
+            Write-Error "THIS IS NOT A GIT REPO. SCRIPT IS FAILING."
+            Exit "0x2 Git repo could not be found."
+
+        }
+
+        Main -RepoDir $target
+
+    }
+} else {
+    Main -RepoDir $targets[0]
+}
