@@ -19,9 +19,9 @@
 
 try {
 
-    $hashes = &git log --pretty=format:"%H" -2
+    $hash = &git log --pretty=format:"%H" -1
 
-    $current = $hashes[0]
+    $current = $hash
 
     if ((Get-Item .\hash.txt).exists -eq $true) {
 
@@ -62,7 +62,7 @@ function Restore-Repo {
     # A, the origin/prod branch has been updated, B, the local repo has had committed changes separate of origin, and C, this script runs.
     # considering that the whole point is to keep the repo synced with origin/prod I don't consider that undefined behavior. Just inadvertent. 
 
-    if ((get-item .\hash.txt).exists -eq $true -and $hashes[0] -ne $previous) {
+    if ((get-item .\hash.txt).exists -eq $true -and $previous -ne $hash) {
 
             # won't run unless hash file exists first, _and_ the hash gathered doesn't match the one in the file.
             # next elseif will handle if the hash file doesn't exist.
@@ -70,7 +70,7 @@ function Restore-Repo {
             Write-Output "Hash has changed since script last ran"
             Write-Output "Reverting to origin repo"
 
-            Update-Logfile -logtext "$(Get-Date -UFormat "%m/%d/%Y %R %Z") - Hash was modified with value $($hashes[0]); reverted to $($previous)"
+            Update-Logfile -logtext "$(Get-Date -UFormat "%m/%d/%Y %R %Z") - Hash was modified with value $($hash); reverted to $($previous)"
 
             &git reset --hard
             &git clean -f -d
@@ -79,12 +79,12 @@ function Restore-Repo {
             Write-Output "Any new untracked files were removed and modified ones were reverted."
 
             # get hashes again after reset
-            $hashes = &git log --pretty=format:"%H" -2
+            $hash = &git log --pretty=format:"%H" -1
 
             # set current newest hash as the "previous" that will be checked against next time
-            Out-File -FilePath .\hash.txt -InputObject $hashes[0]
+            Out-File -FilePath .\hash.txt -InputObject $hash
 
-            Update-Logfile -logtext "$(Get-Date -UFormat "%m/%d/%Y %R %Z") - repo reset to origin/HEAD; canonical hash set to $($hashes[0])"
+            Update-Logfile -logtext "$(Get-Date -UFormat "%m/%d/%Y %R %Z") - repo reset to origin/HEAD; canonical hash set to $($hash)"
 
         } elseif ((get-item .\hash.txt).exists -eq $false) {
 
@@ -99,15 +99,20 @@ function Restore-Repo {
             Write-Output "Repo reset to origin HEAD"
             Write-Output "Any new untracked files were removed and modified ones were reverted."        
             
-            Out-File -FilePath .\hash.txt -InputObject $hashes[0]
+            Out-File -FilePath .\hash.txt -InputObject $hash
 
-            Update-Logfile -logtext "$(Get-Date -UFormat "%m/%d/%Y %R %Z") - repo reset to origin/HEAD; canonical hash set to $($hashes[0])"
+            Update-Logfile -logtext "$(Get-Date -UFormat "%m/%d/%Y %R %Z") - repo reset to origin/HEAD; canonical hash set to $($hash)"
         
         } else {
 
-            # if the hashes haven't changed, nothing really happens, since Remove-FileChanges fires in parent scope before Restore-Repo does.
-            Write-Output "Hash has not changed, no transactions with origin are made."
-            Update-Logfile -logtext "$(Get-Date -UFormat "%m/%d/%Y %R %Z") - hashes unchanged from $previous; no action taken"
+            # if the hashes haven't changed, nothing really needs to be reverted, since Remove-FileChanges fires in parent scope before Restore-Repo does.
+            # so the script will just `git pull` and therefore grab any updates from prod that haven't already come down.
+            Write-Output "Hash has not changed, making a pull from origin"
+            Update-Logfile -logtext "$(Get-Date -UFormat "%m/%d/%Y %R %Z") - hashes unchanged from $previous; pulling from origin and saving hash to file"
+
+            &git pull
+            $hash = &git log --pretty=format:"%H" -1
+            Out-File -FilePath .\hash.txt -InputObject $hash
         }
 
 }
